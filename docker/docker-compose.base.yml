@@ -1,0 +1,41 @@
+version: '2'
+services:
+  app:
+    build:
+      context: ./app
+      dockerfile: Dockerfile
+    container_name: ${COMPOSE_PROJECT_NAME}_app
+    image: ftiersch/app
+    volumes:
+     - ../:/var/www/html
+    networks:
+     - dockertest
+  node:
+    build:
+      context: ./node
+      dockerfile: Dockerfile
+    container_name: ${COMPOSE_PROJECT_NAME}_node
+    image: ftiersch/node
+    volumes:
+     - ../:/var/www/html
+    networks:
+     - dockertest
+  mysql:
+    image: mysql:5.7
+    container_name: ${COMPOSE_PROJECT_NAME}_mysql
+    volumes:
+     - mysqldata:/var/lib/mysql
+    networks:
+     - dockertest
+  redis:
+    image: redis:alpine
+    container_name: ${COMPOSE_PROJECT_NAME}_redis
+    volumes:
+     - redisdata:/data
+    networks:
+     - dockertest
+  webpack:
+    image: jmfirth/webpack
+    container_name: ${COMPOSE_PROJECT_NAME}_webpack
+    volumes:
+     - ../:/app

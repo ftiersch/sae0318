@@ -1,0 +1,161 @@
+#!/usr/bin/env bash
+
+# Set environment variables for dev
+export COMPOSE_PROJECT_NAME=${COMPOSE_PROJECT_NAME:-saetodo}
+export APP_ENV=${APP_ENV:-local}
+export APP_PORT=${APP_PORT:-80}
+
+export DB_PORT=${DB_PORT:-3306}
+export DB_ROOT_PASSWORD=${DB_ROOT_PASSWORD:-root}
+export DB_NAME=${DB_NAME:-default}
+export DB_USER=${DB_USER:-default}
+export DB_PASSWORD=${DB_PASSWORD:-secret}
+
+# Set default docker-compose file
+COMPOSE_FILE="dev"
+
+# Disable TTY if script get's executed by Jenkins
+TTY=""
+
+# Change settings for CI
+if [ ! -z "$BUILD_NUMBER" ]; then
+    COMPOSE_FILE="jenkins"
+    TTY="-T"
+    
+    export APP_ENV=testing
+    export APP_PORT=8888
+
+    export DB_PORT=3307
+    export DB_ROOT_PASSWORD=testing
+    export DB_NAME=baufragen_testing
+    export DB_USER=baufragen_testing
+    export DB_PASSWORD=baufragen_testing_secret
+fi
+
+# Default command to be executed
+COMPOSE="docker-compose -f ./docker/docker-compose.${COMPOSE_FILE}.yml"
+
+# On Windows some paths have to be prefixed by an extra slash, on Mac they don't
+# So decide if we're on a Windows machine and set a prefix
+WORKINGDIRPREFIX=""
+
+if [ "$(expr substr $(uname -s) 1 10)" == "MINGW32_NT" ]; then
+    WORKINGDIRPREFIX="/"
+elif [ "$(expr substr $(uname -s) 1 10)" == "MINGW64_NT" ]; then
+    WORKINGDIRPREFIX="/"
+fi
+
+# If we pass any arguments...
+if [ $# -gt 0 ];then
+
+    # If "artisan" is used, pass-thru to "artisan"
+    # inside a new container
+    if [ "$1" == "artisan" ]; then
+        shift 1
+        $COMPOSE run --rm $TTY \
+            -w $WORKINGDIRPREFIX"/var/www/html" \
+            app \
+            php artisan "$@"
+
+    # If "composer" is used, pass-thru to "composer"
+    # inside a new container
+    elif [ "$1" == "composer" ]; then
+        shift 1
+        $COMPOSE run --rm $TTY \
+            -w $WORKINGDIRPREFIX"/var/www/html" \
+            app \
+            composer "$@"
+
+    # If "test" is used, run unit tests,
+    # pass-thru any extra arguments to php-unit
+    elif [ "$1" == "test" ]; then
+        shift 1
+        $COMPOSE run --rm $TTY \
+            -w $WORKINGDIRPREFIX"/var/www/html" \
+            app \
+            ./vendor/bin/phpunit "$@"
+            
+    # If "t" is used, run unit tests without spinning up
+    # an extra container
+    elif [ "$1" == "t" ]; then
+        shift 1
+        $COMPOSE exec -T \
+            app \
+            sh -c "cd /var/www/html && ./vendor/bin/phpunit $@"
+
+    # If "npm" is used, run npm
+    # from our node container
+    elif [ "$1" == "npm" ]; then
+        shift 1
+        $COMPOSE run --rm $TTY \
+            -w $WORKINGDIRPREFIX"/var/www/html" \
+            node \
+            npm "$@"
+
+    # If "gulp" is used, run gulp
+    # from our node container
+    elif [ "$1" == "gulp" ]; then
+        shift 1
+        $COMPOSE run --rm $TTY \
+            -w $WORKINGDIRPREFIX"/var/www/html" \
+            node \
+            ./node_modules/.bin/gulp "$@"
+            
+    # If "bower" is used, run bower
+    # from our node container
+    elif [ "$1" == "bower" ]; then
+        shift 1
+        $COMPOSE run --rm $TTY \
+            -w $WORKINGDIRPREFIX"/var/www/html" \
+            node \
+            bower --allow-root "$@"
+
+    # If "webpack" is used, run webpack
+    # from our webpack container
+    elif [ "$1" == "webpack" ]; then
+        shift 1
+        $COMPOSE run --rm $TTY \
+            -w $WORKINGDIRPREFIX"/app" \
+            -p 3000:8080 \
+            webpack \
+            "$@"
+            
+    # If "setup" is used, try to set up the environment
+    # for development
+    elif [ "$1" == "setup" ]; then
+        shift 1
+        # start the containers
+        ./develop up -d
+        
+        # copy the .env file
+        cp .env.example .env
+        sed -i "s/^DB_HOST=.*$/DB_HOST=mysql/g" .env
+        sed -i "s/^APP_URL=.*$/APP_URL=http:\/\/localhost:${APP_PORT}/g" .env
+        
+        ./develop artisan key:generate
+        
+        # install composer dependencies
+        ./develop composer install
+        
+        # migrate database including seeds
+        ./develop artisan migrate:refresh --seed
+        
+        # install npm dependencies
+        ./develop npm install
+        
+        # install bower dependencies
+        ./develop bower install
+        
+        # run gulp to generate css and js files
+        ./develop gulp
+        
+        echo "Ready to develop! Call http://localhost:${APP_PORT} in your browser to open the page."
+            
+    # Else, pass-thru args to docker-compose
+    else
+        $COMPOSE "$@"
+    fi
+
+else
+    $COMPOSE ps
+fi

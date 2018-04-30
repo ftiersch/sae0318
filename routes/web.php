@@ -11,4 +11,13 @@
 |
 */
 
-Route::get('/profile/{username?}', ['uses' => 'TestController@showProfile']);
+Route::group(['prefix' => 'tasks'], function() {
+    Route::get('/', ['uses' => 'TaskController@index']);
+    Route::get('/{task}', ['uses' => 'TaskController@single']);
+
+    Route::put('/{task}', ['uses' => 'TaskController@update']);
+
+    Route::post('/', ['uses' => 'TaskController@create']);
+
+    Route::delete('/{task}', ['uses' => 'TaskController@delete']);
+});

@@ -8,7 +8,8 @@ use Illuminate\Http\Request;
 class TaskController extends Controller
 {
     public function index() {
-        $tasks = Task::all();
+        // with = eager loading
+        $tasks = Task::with('tags')->get();
 
         return response()->json($tasks);
     }
@@ -20,6 +21,8 @@ class TaskController extends Controller
     public function update(Request $request, Task $task) {
         $task->updateFromArray($request->all());
 
+        $task->load('tags');
+
         /* Andere Möglichkeit
         $task->update($request->all());
         */
@@ -29,6 +32,8 @@ class TaskController extends Controller
 
     public function create(Request $request) {
         $task = Task::createFromArray($request->all());
+
+        $task->load('tags');
 
         /* Andere Möglichkeit
         Task::create($request->all());

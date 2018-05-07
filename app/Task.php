@@ -13,9 +13,15 @@ class Task extends Model
 
     protected $dates = ['done_at'];
 
+    public function tags() {
+        return $this->belongsToMany(Tag::class, 'tasks_tags')->orderBy('name', 'ASC')->withTimestamps();
+    }
+
     public function updateFromArray($data) {
         $this->task = $data['task'];
         $this->save();
+
+        $this->updateTags($data['tags']);
 
         return $this;
     }
@@ -25,7 +31,20 @@ class Task extends Model
         $task->task = $data['task'];
         $task->save();
 
+        $task->updateTags($data['tags']);
+
         return $task;
+    }
+
+    public function updateTags($tags) {
+        $tagIds = [];
+        if (!empty($tags)) {
+            foreach ($tags as $name) {
+                $tag = Tag::findOrCreate($name);
+                $tagIds[] = $tag->id;
+            }
+        }
+        $this->tags()->sync($tagIds);
     }
 
     public function done() {

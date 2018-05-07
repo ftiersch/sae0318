@@ -18,8 +18,7 @@ class TaskController extends Controller
     }
 
     public function update(Request $request, Task $task) {
-        $task->task = $request->input('task');
-        $task->save();
+        $task->updateFromArray($request->all());
 
         /* Andere Möglichkeit
         $task->update($request->all());
@@ -29,9 +28,7 @@ class TaskController extends Controller
     }
 
     public function create(Request $request) {
-        $task = new Task();
-        $task->task = $request->input('task');
-        $task->save();
+        $task = Task::createFromArray($request->all());
 
         /* Andere Möglichkeit
         Task::create($request->all());
@@ -42,6 +39,12 @@ class TaskController extends Controller
 
     public function delete(Task $task) {
         $task->delete();
+
+        return response()->json($task);
+    }
+
+    public function markAsDone(Task $task) {
+        $task->done();
 
         return response()->json($task);
     }

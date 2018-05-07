@@ -16,6 +16,7 @@ Route::group(['prefix' => 'tasks'], function() {
     Route::get('/{task}', ['uses' => 'TaskController@single']);
 
     Route::put('/{task}', ['uses' => 'TaskController@update']);
+    Route::put('/{task}/done', ['uses' => 'TaskController@markAsDone']);
 
     Route::post('/', ['uses' => 'TaskController@create']);
 

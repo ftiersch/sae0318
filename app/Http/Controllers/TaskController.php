@@ -2,6 +2,8 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Requests\UpdateTaskRequest;
+use App\Http\Resources\TaskResource;
 use App\Task;
 use Illuminate\Http\Request;
 
@@ -9,16 +11,18 @@ class TaskController extends Controller
 {
     public function index() {
         // with = eager loading
-        $tasks = Task::with('tags')->get();
+        $tasks = Task::with('tags')
+                        ->notDone()
+                        ->get();
 
         return response()->json($tasks);
     }
 
     public function single(Task $task) {
-        return response()->json($task);
+        return new TaskResource($task);
     }
 
-    public function update(Request $request, Task $task) {
+    public function update(UpdateTaskRequest $request, Task $task) {
         $task->updateFromArray($request->all());
 
         $task->load('tags');
@@ -31,6 +35,12 @@ class TaskController extends Controller
     }
 
     public function create(Request $request) {
+        $this->validate($request, [
+            'task' => 'required',
+        ], [
+            'task.required' => 'Bitte Aufgabe angeben'
+        ]);
+
         $task = Task::createFromArray($request->all());
 
         $task->load('tags');

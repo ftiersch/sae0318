@@ -2,11 +2,14 @@
 
 namespace App;
 
+use App\Exceptions\TaskAlreadyDoneException;
 use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Task extends Model
 {
+    use SoftDeletes;
     protected $table = 'tasks';
 
     protected $fillable = ['task'];
@@ -15,6 +18,10 @@ class Task extends Model
 
     public function tags() {
         return $this->belongsToMany(Tag::class, 'tasks_tags')->orderBy('name', 'ASC')->withTimestamps();
+    }
+
+    public function scopeNotDone($query) {
+        $query->whereNull('done_at');
     }
 
     public function updateFromArray($data) {
@@ -48,6 +55,10 @@ class Task extends Model
     }
 
     public function done() {
+        if (!empty($this->done_at)) {
+            throw new TaskAlreadyDoneException('Task ' . $this->id . ' is marked as done twice');
+        }
+
         $this->done_at = now();
         $this->save();
     }

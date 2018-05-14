@@ -12,7 +12,7 @@
 */
 
 Route::group(['prefix' => 'tasks'], function() {
-    Route::get('/', ['uses' => 'TaskController@index']);
+    Route::get('/', ['as' => 'tasks.list', 'uses' => 'TaskController@index']);
     Route::get('/{task}', ['uses' => 'TaskController@single']);
 
     Route::put('/{task}', ['uses' => 'TaskController@update']);

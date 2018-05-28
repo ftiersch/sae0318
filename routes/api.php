@@ -1,7 +1,5 @@
 <?php
 
-use Illuminate\Http\Request;
-
 /*
 |--------------------------------------------------------------------------
 | API Routes
@@ -13,6 +11,29 @@ use Illuminate\Http\Request;
 |
 */
 
-Route::middleware('auth:api')->get('/user', function (Request $request) {
-    return $request->user();
+Route::group([
+
+    'middleware' => 'api',
+    'prefix' => 'auth'
+
+], function () {
+
+    Route::post('login', 'AuthController@login');
+    Route::post('logout', 'AuthController@logout');
+    Route::post('refresh', 'AuthController@refresh');
+    Route::post('me', 'AuthController@me');
+
+});
+
+
+Route::middleware('auth')->prefix('tasks')->group(function() {
+    Route::get('/', ['as' => 'tasks.list', 'uses' => 'TaskController@index']);
+    Route::get('/{task}', ['uses' => 'TaskController@single']);
+
+    Route::put('/{task}', ['uses' => 'TaskController@update']);
+    Route::put('/{task}/done', ['uses' => 'TaskController@markAsDone']);
+
+    Route::post('/', ['uses' => 'TaskController@create']);
+
+    Route::delete('/{task}', ['uses' => 'TaskController@delete']);
 });
